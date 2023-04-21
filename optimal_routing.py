@@ -1,15 +1,8 @@
+# Imports
 import pandas as pd
-# import osmnx as ox # https://towardsdatascience.com/visualization-in-python-finding-routes-between-points-2d97d4881996
-# import networkx as nx
-from geopy.geocoders import Nominatim
-# API: https://googlemaps.github.io/google-maps-services-python/docs/#module-googlemaps
 import googlemaps
 from datetime import datetime
-# import folium
 import haversine as hs
-# import json
-
-import geopy.distance
 import folium
 
 # ox.settings.log_console=True
@@ -175,6 +168,7 @@ def generate_polyline_coords(steps):
 def folium_map(gmaps, route, start_coords, end_coords, ev_waypoints):
 
 
+
     for i, waypoint in enumerate(ev_waypoints):
 
         
@@ -186,7 +180,7 @@ def folium_map(gmaps, route, start_coords, end_coords, ev_waypoints):
             folium_map = folium.Map(location=coords)
 
 
-        folium.Marker(location=coords, popup=waypoint).add_to(folium_map)
+        folium.Marker(location=coords, popup=waypoint, zoom=6.5).add_to(folium_map)
 
     folium.Marker(location=start_coords, popup='Origin').add_to(folium_map)
     folium.Marker(location=end_coords, popup='Destination').add_to(folium_map)
@@ -241,11 +235,11 @@ def main(start, end, current_range, total_range):
     # return final_route
 
 
-start_address = 'University of Southern California'
-end_address = 'San Francisco, CA'
-total_range = 300  # average EV range based on: https://www.bloomberg.com/news/articles/2023-03-09/average-range-for-us-electric-cars-reached-a-record-291-miles#xj4y7vzkg
+start_address = 'San Diego, CA'
+end_address = 'Redding, CA'
+total_range = 225  # average EV range based on: https://www.bloomberg.com/news/articles/2023-03-09/average-range-for-us-electric-cars-reached-a-record-291-miles#xj4y7vzkg
 # value used to reset the range whenever rerouted to a EV charging station
-current_range = 300
+current_range = 225
 
 
 main(start_address, end_address, current_range, total_range)
