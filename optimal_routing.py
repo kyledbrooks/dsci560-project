@@ -10,6 +10,7 @@ import haversine as hs
 # import json
 
 import geopy.distance
+import folium
 
 # ox.settings.log_console=True
 # ox.settings.use_cache=True
@@ -159,18 +160,61 @@ def identify_ev_stops(gmaps, steps, current_range, total_range, buffer, stations
     return ev_stops
 
 
+def generate_polyline_coords(steps):
+    coords = []
+    for step in steps:
+        polyline = step['polyline']['points']
+        decoded_polyline = googlemaps.convert.decode_polyline(polyline)
+        coords.extend(decoded_polyline)
+
+    processed_coordinates = list(map(lambda x: (x['lat'], x['lng']), coords))
+
+    return processed_coordinates
+
+
+def folium_map(gmaps, route, start_coords, end_coords, ev_waypoints):
+
+
+    for i, waypoint in enumerate(ev_waypoints):
+
+        
+        waypoint_geocoded = gmaps.geocode(waypoint)[0]  # geocode address
+        coords = [waypoint_geocoded['geometry']['location']['lat'], waypoint_geocoded['geometry']['location']['lng']]  # extract lat/longitude
+        # processed_coordinates = list(map(lambda x: (x['lat'], x['lng']), coords))
+
+        if i == 0:
+            folium_map = folium.Map(location=coords)
+
+
+        folium.Marker(location=coords, popup=waypoint).add_to(folium_map)
+
+    folium.Marker(location=start_coords, popup='Origin').add_to(folium_map)
+    folium.Marker(location=end_coords, popup='Destination').add_to(folium_map)
+
+
+    steps = route[0]['legs'][0]['steps']
+
+    route_coords = generate_polyline_coords(steps)
+
+    folium.PolyLine(locations=route_coords, color='blue', weight=5).add_to(folium_map)
+
+    folium_map.save('folium_map.html')
+
+
+
+
 def main(start, end, current_range, total_range):
 
     # buffer range to account for variations in traffic, EV range, etc.
     buffer = 25
 
     # Data file
-    data = pd.read_csv('../data/alt_fuel_stations_Feb_2_2023.csv')
+    data = pd.read_csv('./data/alt_fuel_stations_Feb_2_2023.csv')
     # Parse out only coordinates for data efficiency
     coords = data[['Latitude', 'Longitude']].copy()
 
     # Will need to hide this token
-    with open('../api.txt') as f:
+    with open('./api.txt') as f:
         token = f.read()
 
     # Initialize gmaps
@@ -184,12 +228,17 @@ def main(start, end, current_range, total_range):
 
     ev_waypoints = identify_ev_stops(
         gmaps, steps, current_range, total_range, buffer, coords, end_coords)
+    
+    ev_waypoints = list(map(lambda x: f'via:{x}', ev_waypoints))  # ensures that polyline doesn't stop at first destination
 
     # Generate final route with waypoints
     final_route = gmaps.directions(start, end, mode='driving', waypoints=ev_waypoints,
                                    departure_time=datetime.now(), optimize_waypoints=True)
+    
 
-    return final_route
+    folium_map(gmaps, final_route, start_coords, end_coords, ev_waypoints)
+
+    # return final_route
 
 
 start_address = 'University of Southern California'
@@ -199,4 +248,4 @@ total_range = 300  # average EV range based on: https://www.bloomberg.com/news/a
 current_range = 300
 
 
-final_route = main(start_address, end_address, current_range, total_range)
+main(start_address, end_address, current_range, total_range)
